@@ -1,5 +1,6 @@
-import type { ChatItem } from '../api/types'
-import { formatKstDate, formatKstTime } from '../utils/date'
+import type { ChatItem } from "../api/types";
+import { formatKstDate, formatKstTime } from "../utils/date";
+import { MarkdownRenderer } from "../components/MarkdownRenderer";
 
 export function DateSeparator({ createdAt }: { createdAt: string | Date }) {
   return (
@@ -10,7 +11,7 @@ export function DateSeparator({ createdAt }: { createdAt: string | Date }) {
       </time>
       <span className="h-px flex-1 bg-slate-200" />
     </div>
-  )
+  );
 }
 
 export function MessagePair({ item }: { item: ChatItem }) {
@@ -46,8 +47,8 @@ export function MessagePair({ item }: { item: ChatItem }) {
           </svg>
         </div>
         <div className="max-w-[88%] sm:max-w-[78%]">
-          <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-[15px] leading-7 whitespace-pre-wrap text-slate-700 shadow-sm">
-            {item.response}
+          <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-[15px] leading-7 text-slate-700 shadow-sm">
+            <MarkdownRenderer content={item.response} />
           </div>
           <time
             dateTime={item.created_at}
@@ -58,11 +59,11 @@ export function MessagePair({ item }: { item: ChatItem }) {
         </div>
       </div>
     </article>
-  )
+  );
 }
 
 export function PendingMessage({ question }: { question: string }) {
-  const now = new Date()
+  const now = new Date();
   return (
     <article className="space-y-5" aria-label="전송 중인 대화">
       <div className="flex justify-end gap-3">
@@ -91,14 +92,21 @@ export function PendingMessage({ question }: { question: string }) {
         </div>
       </div>
     </article>
-  )
+  );
 }
 
 export function ChatSkeleton() {
   return (
-    <div className="space-y-8" role="status" aria-label="대화 기록을 불러오는 중">
+    <div
+      className="space-y-8"
+      role="status"
+      aria-label="대화 기록을 불러오는 중"
+    >
       {[0, 1].map((item) => (
-        <div key={item} className="animate-pulse space-y-5 motion-reduce:animate-none">
+        <div
+          key={item}
+          className="animate-pulse space-y-5 motion-reduce:animate-none"
+        >
           <div className="ml-auto h-16 w-2/3 rounded-2xl rounded-br-md bg-indigo-100" />
           <div className="flex gap-3">
             <div className="size-8 rounded-xl bg-slate-200" />
@@ -107,5 +115,5 @@ export function ChatSkeleton() {
         </div>
       ))}
     </div>
-  )
+  );
 }
