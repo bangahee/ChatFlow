@@ -37,8 +37,6 @@ function isUnauthorized(error: unknown): boolean {
 }
 
 export function ChatPage() {
-  // ChatPage 함수 내부 상단:
-
   const { user, token, logout, invalidateSession } = useAuth();
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [question, setQuestion] = useState("");
@@ -55,10 +53,13 @@ export function ChatPage() {
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const operationControllerRef = useRef<AbortController | null>(null);
+  // ChatPage 함수 내부 상단:
   const { showBottomButton, scrollToBottom } = useSmartScroll([
     chats,
     pendingQuestion,
   ]);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleProtectedError = useCallback(
     (error: unknown): boolean => {
@@ -153,6 +154,9 @@ export function ChatPage() {
       );
       setChats((current) => [...current, response]);
       setQuestion("");
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
       setQuestionError(null);
     } catch (error) {
       if (isAbortError(error) || handleProtectedError(error)) return;
@@ -187,6 +191,15 @@ export function ChatPage() {
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    // 👇 한글 입력 조합 중 Enter 중복 전송 방지
+    if (event.nativeEvent.isComposing) {
+      return;
+    }
+
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      // 기존 submit 호출 로직 유지
+    }
     if (
       event.key !== "Enter" ||
       event.shiftKey ||
@@ -381,25 +394,25 @@ export function ChatPage() {
                 AI에게 보낼 질문
               </label>
               <textarea
+                ref={textareaRef}
                 id="chat-question"
                 name="question"
                 rows={2}
                 value={question}
                 disabled={sending}
-                aria-invalid={Boolean(questionError) || remaining < 0}
-                aria-describedby={
-                  questionError
-                    ? "question-help question-error"
-                    : "question-help"
-                }
                 placeholder="AI에게 무엇이든 물어보세요…"
                 onKeyDown={handleComposerKeyDown}
                 onChange={(event) => {
                   setQuestion(event.target.value);
                   setQuestionError(null);
-                  setSendError(null);
+                  if (setSendError) setSendError(null);
+                  // 👇 텍스트 길이에 따른 높이 자동 계산
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = "auto";
+                    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+                  }
                 }}
-                className="max-h-40 min-h-14 w-full resize-y bg-transparent px-3 py-2 text-[15px] leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="max-h-40 min-h-14 w-full resize-none bg-transparent px-3 py-2 text-[15px] leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-70 overflow-y-auto"
               />
               <div className="flex items-center justify-between gap-3 px-2 pb-1">
                 <div className="min-w-0">
