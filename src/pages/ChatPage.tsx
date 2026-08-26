@@ -259,6 +259,9 @@ export function ChatPage() {
                 {user?.username}
               </span>
             </div>
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-semibold text-indigo-700">
+              <span>💬 총 {chats.length}개 대화</span>
+            </div>
             <button
               ref={deleteButtonRef}
               type="button"
