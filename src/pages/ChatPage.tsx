@@ -22,6 +22,7 @@ import {
   MessagePair,
   PendingMessage,
 } from "../components/ChatMessages";
+import { PromptChips } from "../components/PromptChips";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { getKstDateKey } from "../utils/date";
 import { countCodePoints, validateQuestion } from "../utils/validation";
@@ -349,6 +350,9 @@ export function ChatPage() {
                   아래 입력창에 질문을 작성하고 Enter를 누르세요. Shift+Enter로
                   줄을 바꿀 수 있습니다.
                 </p>
+                <PromptChips
+                  onSelect={(promptText) => setQuestion(promptText)}
+                />
               </div>
             ) : null}
 
@@ -470,7 +474,6 @@ export function ChatPage() {
             </form>
           </div>
         </div>
-        // return JSX 내부 main 닫는 태그 바로 앞에 추가:
         {showBottomButton && (
           <button
             type="button"
