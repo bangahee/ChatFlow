@@ -63,4 +63,23 @@ describe('API client', () => {
       message: '서버에 연결할 수 없습니다. 네트워크를 확인해 주세요.',
     })
   })
+
+  it('로그인 401 응답의 detail을 변경하지 않는다', async () => {
+    server.use(
+      http.post(`${API_BASE_URL}/api/auth/login`, () =>
+        HttpResponse.json(
+          { detail: '아이디 또는 비밀번호가 올바르지 않습니다.' },
+          { status: 401 },
+        ),
+      ),
+    )
+
+    await expect(
+      authApi.login({ username: 'chat_user', password: 'wrong-password' }),
+    ).rejects.toMatchObject({
+      status: 401,
+      kind: 'http',
+      message: '아이디 또는 비밀번호가 올바르지 않습니다.',
+    })
+  })
 })

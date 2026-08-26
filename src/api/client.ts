@@ -130,17 +130,6 @@ export async function apiRequest<T>(
     }
   }
 
-  // 👇 여기에 401 세션 만료 처리 분기 추가 🔐
-  if (response.status === 401) {
-    localStorage.removeItem("chatflow_token"); // 또는 프로젝트에서 사용하는 토큰 key
-    window.dispatchEvent(new Event("auth:unauthorized"));
-    throw new ApiError("인증이 만료되었습니다. 다시 로그인해 주세요.", {
-      status: 401,
-      kind: "http",
-      details: payload,
-    });
-  }
-
   if (!response.ok) {
     throw new ApiError(responseErrorMessage(response.status, payload), {
       status: response.status,

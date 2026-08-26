@@ -130,6 +130,31 @@ describe('ChatFlow application', () => {
     expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBe('new-token')
   })
 
+  it('잘못된 로그인 정보에 대한 서버 안내를 표시한다', async () => {
+    server.use(
+      http.post(`${API_BASE_URL}/api/auth/login`, () =>
+        HttpResponse.json(
+          { detail: '아이디 또는 비밀번호가 올바르지 않습니다.' },
+          { status: 401 },
+        ),
+      ),
+    )
+    const user = userEvent.setup()
+    renderApp('/login')
+
+    await user.type(screen.getByLabelText('아이디'), 'chat_user')
+    await user.type(screen.getByLabelText('비밀번호'), 'wrong-password')
+    await user.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect(
+      await screen.findByText('아이디 또는 비밀번호가 올바르지 않습니다.'),
+    ).toBeVisible()
+    expect(
+      screen.queryByText('인증이 만료되었습니다. 다시 로그인해 주세요.'),
+    ).not.toBeInTheDocument()
+    expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBeNull()
+  })
+
   it('질문 전송 결과를 표시하고 전체 기록을 삭제한다', async () => {
     localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'valid-token')
     installAuthenticatedHandlers()
