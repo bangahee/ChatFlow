@@ -5,215 +5,232 @@ import {
   useState,
   type FormEvent,
   type KeyboardEvent,
-} from 'react'
-import { ApiError, chatApi, getErrorMessage, isAbortError } from '../api/client'
-import type { ChatItem } from '../api/types'
-import { useAuth } from '../auth/AuthContext'
-import { Alert } from '../components/Alert'
-import { Brand } from '../components/Brand'
+} from "react";
+import {
+  ApiError,
+  chatApi,
+  getErrorMessage,
+  isAbortError,
+} from "../api/client";
+import type { ChatItem } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
+import { Alert } from "../components/Alert";
+import { Brand } from "../components/Brand";
 import {
   ChatSkeleton,
   DateSeparator,
   MessagePair,
   PendingMessage,
-} from '../components/ChatMessages'
-import { ConfirmDialog } from '../components/ConfirmDialog'
-import { getKstDateKey } from '../utils/date'
-import { countCodePoints, validateQuestion } from '../utils/validation'
+} from "../components/ChatMessages";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { getKstDateKey } from "../utils/date";
+import { countCodePoints, validateQuestion } from "../utils/validation";
+import { useSmartScroll } from "../hooks/useSmartScroll";
 
 interface BannerState {
-  tone: 'error' | 'success' | 'info'
-  message: string
+  tone: "error" | "success" | "info";
+  message: string;
 }
 
 function isUnauthorized(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 401
+  return error instanceof ApiError && error.status === 401;
 }
 
 export function ChatPage() {
-  const { user, token, logout, invalidateSession } = useAuth()
-  const [chats, setChats] = useState<ChatItem[]>([])
-  const [question, setQuestion] = useState('')
-  const [questionError, setQuestionError] = useState<string | null>(null)
-  const [historyLoading, setHistoryLoading] = useState(true)
-  const [historyError, setHistoryError] = useState<string | null>(null)
-  const [sendError, setSendError] = useState<string | null>(null)
-  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
-  const [sending, setSending] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [banner, setBanner] = useState<BannerState | null>(null)
-  const scrollAnchorRef = useRef<HTMLDivElement>(null)
-  const deleteButtonRef = useRef<HTMLButtonElement>(null)
-  const formRef = useRef<HTMLFormElement>(null)
-  const operationControllerRef = useRef<AbortController | null>(null)
+  // ChatPage 함수 내부 상단:
+
+  const { user, token, logout, invalidateSession } = useAuth();
+  const [chats, setChats] = useState<ChatItem[]>([]);
+  const [question, setQuestion] = useState("");
+  const [questionError, setQuestionError] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [banner, setBanner] = useState<BannerState | null>(null);
+  const scrollAnchorRef = useRef<HTMLDivElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const operationControllerRef = useRef<AbortController | null>(null);
+  const { showBottomButton, scrollToBottom } = useSmartScroll([
+    chats,
+    pendingQuestion,
+  ]);
 
   const handleProtectedError = useCallback(
     (error: unknown): boolean => {
-      if (!isUnauthorized(error)) return false
-      invalidateSession()
-      return true
+      if (!isUnauthorized(error)) return false;
+      invalidateSession();
+      return true;
     },
     [invalidateSession],
-  )
+  );
 
   const loadHistory = useCallback(
     async (signal?: AbortSignal) => {
-      if (!token) return
-      setHistoryLoading(true)
-      setHistoryError(null)
+      if (!token) return;
+      setHistoryLoading(true);
+      setHistoryError(null);
       try {
-        const history = await chatApi.list(token, signal)
-        setChats(history.items)
+        const history = await chatApi.list(token, signal);
+        setChats(history.items);
       } catch (error) {
-        if (isAbortError(error) || handleProtectedError(error)) return
-        setHistoryError(getErrorMessage(error))
+        if (isAbortError(error) || handleProtectedError(error)) return;
+        setHistoryError(getErrorMessage(error));
       } finally {
-        if (!signal?.aborted) setHistoryLoading(false)
+        if (!signal?.aborted) setHistoryLoading(false);
       }
     },
     [handleProtectedError, token],
-  )
+  );
 
   useEffect(() => {
-    const controller = new AbortController()
+    const controller = new AbortController();
     // The route mount is the source of truth for the initial history request.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadHistory(controller.signal)
-    return () => controller.abort()
-  }, [loadHistory])
+    void loadHistory(controller.signal);
+    return () => controller.abort();
+  }, [loadHistory]);
 
   useEffect(
     () => () => {
-      operationControllerRef.current?.abort()
+      operationControllerRef.current?.abort();
     },
     [],
-  )
+  );
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({
-      behavior: historyLoading ? 'auto' : 'smooth',
-      block: 'end',
-    })
-  }, [chats, pendingQuestion, historyLoading])
+      behavior: historyLoading ? "auto" : "smooth",
+      block: "end",
+    });
+  }, [chats, pendingQuestion, historyLoading]);
 
   const reconcileAfterNetworkError = async (
     submittedQuestion: string,
     existingIds: Set<number>,
     signal: AbortSignal,
   ): Promise<boolean> => {
-    if (!token) return false
+    if (!token) return false;
     try {
-      const history = await chatApi.list(token, signal)
-      setChats(history.items)
+      const history = await chatApi.list(token, signal);
+      setChats(history.items);
       return history.items.some(
-        (item) => !existingIds.has(item.id) && item.question === submittedQuestion,
-      )
+        (item) =>
+          !existingIds.has(item.id) && item.question === submittedQuestion,
+      );
     } catch (error) {
-      if (!isAbortError(error)) handleProtectedError(error)
-      return false
+      if (!isAbortError(error)) handleProtectedError(error);
+      return false;
     }
-  }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (sending || !token) return
+    event.preventDefault();
+    if (sending || !token) return;
 
-    const validationError = validateQuestion(question)
-    setQuestionError(validationError)
-    setSendError(null)
-    setBanner(null)
-    if (validationError) return
+    const validationError = validateQuestion(question);
+    setQuestionError(validationError);
+    setSendError(null);
+    setBanner(null);
+    if (validationError) return;
 
-    const submittedQuestion = question.trim()
-    const existingIds = new Set(chats.map((item) => item.id))
-    const controller = new AbortController()
-    operationControllerRef.current = controller
-    setSending(true)
-    setPendingQuestion(submittedQuestion)
+    const submittedQuestion = question.trim();
+    const existingIds = new Set(chats.map((item) => item.id));
+    const controller = new AbortController();
+    operationControllerRef.current = controller;
+    setSending(true);
+    setPendingQuestion(submittedQuestion);
 
     try {
       const response = await chatApi.create(
         submittedQuestion,
         token,
         controller.signal,
-      )
-      setChats((current) => [...current, response])
-      setQuestion('')
-      setQuestionError(null)
+      );
+      setChats((current) => [...current, response]);
+      setQuestion("");
+      setQuestionError(null);
     } catch (error) {
-      if (isAbortError(error) || handleProtectedError(error)) return
+      if (isAbortError(error) || handleProtectedError(error)) return;
 
-      if (error instanceof ApiError && error.kind === 'network') {
+      if (error instanceof ApiError && error.kind === "network") {
         const recovered = await reconcileAfterNetworkError(
           submittedQuestion,
           existingIds,
           controller.signal,
-        )
+        );
         if (recovered) {
-          setQuestion('')
+          setQuestion("");
           setBanner({
-            tone: 'info',
-            message: '연결이 끊겼지만 서버에 저장된 응답을 다시 불러왔습니다.',
-          })
+            tone: "info",
+            message: "연결이 끊겼지만 서버에 저장된 응답을 다시 불러왔습니다.",
+          });
         } else {
           setSendError(
             `${getErrorMessage(error)} 전송 결과가 확인되지 않아 질문을 자동으로 다시 보내지 않았습니다.`,
-          )
+          );
         }
       } else {
-        setSendError(getErrorMessage(error))
+        setSendError(getErrorMessage(error));
       }
     } finally {
-      setPendingQuestion(null)
-      setSending(false)
+      setPendingQuestion(null);
+      setSending(false);
       if (operationControllerRef.current === controller) {
-        operationControllerRef.current = null
+        operationControllerRef.current = null;
       }
     }
-  }
+  };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
-      return
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
     }
-    event.preventDefault()
-    formRef.current?.requestSubmit()
-  }
+    event.preventDefault();
+    formRef.current?.requestSubmit();
+  };
 
   const closeDeleteDialog = useCallback(() => {
-    if (!deleting) setDeleteOpen(false)
-  }, [deleting])
+    if (!deleting) setDeleteOpen(false);
+  }, [deleting]);
 
   const handleDelete = async () => {
-    if (!token || deleting) return
-    const controller = new AbortController()
-    operationControllerRef.current = controller
-    setDeleting(true)
-    setBanner(null)
+    if (!token || deleting) return;
+    const controller = new AbortController();
+    operationControllerRef.current = controller;
+    setDeleting(true);
+    setBanner(null);
 
     try {
-      const result = await chatApi.clear(token, controller.signal)
-      setChats([])
-      setDeleteOpen(false)
+      const result = await chatApi.clear(token, controller.signal);
+      setChats([]);
+      setDeleteOpen(false);
       setBanner({
-        tone: 'success',
+        tone: "success",
         message: `${result.deleted_count}개의 대화 기록을 삭제했습니다.`,
-      })
+      });
     } catch (error) {
-      if (isAbortError(error) || handleProtectedError(error)) return
-      setDeleteOpen(false)
-      setBanner({ tone: 'error', message: getErrorMessage(error) })
+      if (isAbortError(error) || handleProtectedError(error)) return;
+      setDeleteOpen(false);
+      setBanner({ tone: "error", message: getErrorMessage(error) });
     } finally {
-      setDeleting(false)
+      setDeleting(false);
       if (operationControllerRef.current === controller) {
-        operationControllerRef.current = null
+        operationControllerRef.current = null;
       }
     }
-  }
+  };
 
-  const questionLength = countCodePoints(question)
-  const remaining = 500 - questionLength
+  const questionLength = countCodePoints(question);
+  const remaining = 500 - questionLength;
 
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50">
@@ -225,7 +242,9 @@ export function ChatPage() {
               <span className="grid size-6 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
                 {user?.username.charAt(0).toUpperCase()}
               </span>
-              <span className="max-w-36 truncate font-medium">{user?.username}</span>
+              <span className="max-w-36 truncate font-medium">
+                {user?.username}
+              </span>
             </div>
             <button
               ref={deleteButtonRef}
@@ -272,7 +291,9 @@ export function ChatPage() {
 
             {!historyLoading && historyError ? (
               <div className="rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-sm">
-                <p className="font-semibold text-slate-800">대화를 불러오지 못했습니다.</p>
+                <p className="font-semibold text-slate-800">
+                  대화를 불러오지 못했습니다.
+                </p>
                 <p className="mt-2 text-sm text-rose-600">{historyError}</p>
                 <button
                   type="button"
@@ -284,10 +305,18 @@ export function ChatPage() {
               </div>
             ) : null}
 
-            {!historyLoading && !historyError && chats.length === 0 && !pendingQuestion ? (
+            {!historyLoading &&
+            !historyError &&
+            chats.length === 0 &&
+            !pendingQuestion ? (
               <div className="flex min-h-[48vh] flex-col items-center justify-center text-center">
                 <div className="grid size-16 place-items-center rounded-3xl bg-indigo-100 text-indigo-600">
-                  <svg viewBox="0 0 24 24" fill="none" className="size-8" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="size-8"
+                    aria-hidden="true"
+                  >
                     <path
                       d="M8 10h8m-8 4h5M5.5 5h13A1.5 1.5 0 0 1 20 6.5v9a1.5 1.5 0 0 1-1.5 1.5H11l-4.5 3v-3h-1A1.5 1.5 0 0 1 4 15.5v-9A1.5 1.5 0 0 1 5.5 5Z"
                       stroke="currentColor"
@@ -301,37 +330,41 @@ export function ChatPage() {
                   무엇이든 물어보세요
                 </h1>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
-                  아래 입력창에 질문을 작성하고 Enter를 누르세요. Shift+Enter로 줄을
-                  바꿀 수 있습니다.
+                  아래 입력창에 질문을 작성하고 Enter를 누르세요. Shift+Enter로
+                  줄을 바꿀 수 있습니다.
                 </p>
               </div>
             ) : null}
 
             {!historyLoading && !historyError
               ? chats.map((item, index) => {
-                  const previous = chats[index - 1]
+                  const previous = chats[index - 1];
                   const showDate =
                     !previous ||
-                    getKstDateKey(previous.created_at) !== getKstDateKey(item.created_at)
+                    getKstDateKey(previous.created_at) !==
+                      getKstDateKey(item.created_at);
                   return (
                     <div key={item.id} className="message-enter">
-                      {showDate ? <DateSeparator createdAt={item.created_at} /> : null}
+                      {showDate ? (
+                        <DateSeparator createdAt={item.created_at} />
+                      ) : null}
                       <MessagePair item={item} />
                     </div>
-                  )
+                  );
                 })
               : null}
 
             {pendingQuestion ? (
               <div className="message-enter">
-                {chats.length === 0 ? <DateSeparator createdAt={new Date()} /> : null}
+                {chats.length === 0 ? (
+                  <DateSeparator createdAt={new Date()} />
+                ) : null}
                 <PendingMessage question={pendingQuestion} />
               </div>
             ) : null}
             <div ref={scrollAnchorRef} className="h-2" />
           </div>
         </div>
-
         <div className="sticky bottom-0 z-10 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pb-4 pt-4 sm:pb-6">
           <div className="mx-auto max-w-3xl">
             {sendError ? (
@@ -355,14 +388,16 @@ export function ChatPage() {
                 disabled={sending}
                 aria-invalid={Boolean(questionError) || remaining < 0}
                 aria-describedby={
-                  questionError ? 'question-help question-error' : 'question-help'
+                  questionError
+                    ? "question-help question-error"
+                    : "question-help"
                 }
                 placeholder="AI에게 무엇이든 물어보세요…"
                 onKeyDown={handleComposerKeyDown}
                 onChange={(event) => {
-                  setQuestion(event.target.value)
-                  setQuestionError(null)
-                  setSendError(null)
+                  setQuestion(event.target.value);
+                  setQuestionError(null);
+                  setSendError(null);
                 }}
                 className="max-h-40 min-h-14 w-full resize-y bg-transparent px-3 py-2 text-[15px] leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
@@ -372,28 +407,38 @@ export function ChatPage() {
                     Enter 전송 · Shift+Enter 줄바꿈
                   </p>
                   {questionError ? (
-                    <p id="question-error" className="mt-1 text-xs font-medium text-rose-600">
+                    <p
+                      id="question-error"
+                      className="mt-1 text-xs font-medium text-rose-600"
+                    >
                       {questionError}
                     </p>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <span
-                    className={`text-xs font-medium ${remaining < 0 ? 'text-rose-600' : 'text-slate-400'}`}
+                    className={`text-xs font-medium ${remaining < 0 ? "text-rose-600" : "text-slate-400"}`}
                     aria-live="polite"
                   >
-                    {remaining >= 0 ? `${remaining}자 남음` : `${Math.abs(remaining)}자 초과`}
+                    {remaining >= 0
+                      ? `${remaining}자 남음`
+                      : `${Math.abs(remaining)}자 초과`}
                   </span>
                   <button
                     type="submit"
                     disabled={sending || remaining < 0}
                     className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label={sending ? '질문 전송 중' : '질문 전송'}
+                    aria-label={sending ? "질문 전송 중" : "질문 전송"}
                   >
                     {sending ? (
                       <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                     ) : (
-                      <svg viewBox="0 0 24 24" fill="none" className="size-5" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="size-5"
+                        aria-hidden="true"
+                      >
                         <path
                           d="m5 12 14-7-4.5 14-2.8-5.2L5 12Zm6.7 1.8L19 5"
                           stroke="currentColor"
@@ -409,6 +454,16 @@ export function ChatPage() {
             </form>
           </div>
         </div>
+        // return JSX 내부 main 닫는 태그 바로 앞에 추가:
+        {showBottomButton && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom(true)}
+            className="fixed bottom-24 right-6 px-3.5 py-2 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 text-xs font-semibold flex items-center gap-1.5 transition-all z-20"
+          >
+            ↓ 최신 메시지
+          </button>
+        )}
       </main>
 
       {deleteOpen ? (
@@ -423,5 +478,5 @@ export function ChatPage() {
         />
       ) : null}
     </div>
-  )
+  );
 }
