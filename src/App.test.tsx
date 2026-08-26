@@ -200,6 +200,41 @@ describe('ChatFlow application', () => {
     expect(screen.queryByText('새 답변')).not.toBeInTheDocument()
   })
 
+  it('추천 프롬프트를 클릭하면 즉시 질문을 전송한다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'valid-token')
+    installAuthenticatedHandlers()
+    const postHandler = vi.fn()
+    server.use(
+      http.post(`${API_BASE_URL}/api/chat`, async ({ request }) => {
+        postHandler()
+        expect(await request.json()).toEqual({
+          question: '⚡️ React 렌더링 최적화 팁 알려줘',
+        })
+        return HttpResponse.json(
+          {
+            id: 13,
+            question: '⚡️ React 렌더링 최적화 팁 알려줘',
+            response: '메모이제이션을 필요한 곳에만 적용하세요.',
+            created_at: '2026-08-21T05:00:00Z',
+            request_id: 'prompt-request-id',
+          },
+          { status: 201 },
+        )
+      }),
+    )
+    const user = userEvent.setup()
+    renderApp('/chat')
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: '⚡️ React 렌더링 최적화 팁 알려줘',
+      }),
+    )
+
+    expect(await screen.findByText('메모이제이션을 필요한 곳에만 적용하세요.')).toBeVisible()
+    expect(postHandler).toHaveBeenCalledTimes(1)
+  })
+
   it('AI timeout 오류를 보여주고 입력한 질문을 보존한다', async () => {
     localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'valid-token')
     installAuthenticatedHandlers()
