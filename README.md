@@ -137,8 +137,11 @@ npm run build
 
 ## 보안과 제한 사항
 
-- 사용자 질문과 AI 답변은 JSX 일반 텍스트로만 렌더링합니다.
-- `dangerouslySetInnerHTML`과 HTML/Markdown 삽입은 사용하지 않습니다.
+- 사용자 질문은 React JSX 텍스트로 렌더링하고, AI 답변은
+  `react-markdown`과 `remark-gfm`으로 Markdown(표, 목록, 코드 블록 등)을
+  렌더링합니다.
+- `dangerouslySetInnerHTML`과 `rehype-raw`를 사용하지 않아 AI 답변의 raw HTML은
+  DOM에 실행 가능한 HTML로 삽입되지 않습니다.
 - Refresh Token, 서버 로그아웃, 개별 대화 삭제, 페이지네이션, 스트리밍 응답은
   현재 백엔드 계약에 포함되지 않아 제공하지 않습니다.
 - 네트워크가 POST 응답 전에 끊기면 질문을 자동 재전송하지 않습니다. 대신 기록을
