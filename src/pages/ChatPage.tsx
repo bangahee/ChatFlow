@@ -50,17 +50,17 @@ export function ChatPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [banner, setBanner] = useState<BannerState | null>(null);
+
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const operationControllerRef = useRef<AbortController | null>(null);
-  // ChatPage 함수 내부 상단:
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const { showBottomButton, scrollToBottom } = useSmartScroll([
     chats,
     pendingQuestion,
   ]);
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleProtectedError = useCallback(
     (error: unknown): boolean => {
@@ -130,17 +130,16 @@ export function ChatPage() {
     }
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const sendQuestion = async (textToSend: string) => {
     if (sending || !token) return;
 
-    const validationError = validateQuestion(question);
+    const validationError = validateQuestion(textToSend);
     setQuestionError(validationError);
     setSendError(null);
     setBanner(null);
     if (validationError) return;
 
-    const submittedQuestion = question.trim();
+    const submittedQuestion = textToSend.trim();
     const existingIds = new Set(chats.map((item) => item.id));
     const controller = new AbortController();
     operationControllerRef.current = controller;
@@ -191,25 +190,20 @@ export function ChatPage() {
     }
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void sendQuestion(question);
+  };
+
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    // 👇 한글 입력 조합 중 Enter 중복 전송 방지
     if (event.nativeEvent.isComposing) {
       return;
     }
 
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      // 기존 submit 호출 로직 유지
+      formRef.current?.requestSubmit();
     }
-    if (
-      event.key !== "Enter" ||
-      event.shiftKey ||
-      event.nativeEvent.isComposing
-    ) {
-      return;
-    }
-    event.preventDefault();
-    formRef.current?.requestSubmit();
   };
 
   const closeDeleteDialog = useCallback(() => {
@@ -347,11 +341,10 @@ export function ChatPage() {
                   무엇이든 물어보세요
                 </h1>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
-                  아래 입력창에 질문을 작성하고 Enter를 누르세요. Shift+Enter로
-                  줄을 바꿀 수 있습니다.
+                  아래 입력창에 질문을 작성하거나 추천 프롬프트를 선택해 보세요.
                 </p>
                 <PromptChips
-                  onSelect={(promptText) => setQuestion(promptText)}
+                  onSelect={(promptText) => void sendQuestion(promptText)}
                 />
               </div>
             ) : null}
@@ -412,8 +405,7 @@ export function ChatPage() {
                 onChange={(event) => {
                   setQuestion(event.target.value);
                   setQuestionError(null);
-                  if (setSendError) setSendError(null);
-                  // 👇 텍스트 길이에 따른 높이 자동 계산
+                  setSendError(null);
                   if (textareaRef.current) {
                     textareaRef.current.style.height = "auto";
                     textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
