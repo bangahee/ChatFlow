@@ -1,6 +1,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CodeBlock } from "./CodeBlock";
 
 interface Props {
   content: string;
@@ -46,11 +47,22 @@ export const MarkdownRenderer: React.FC<Props> = ({ content }) => {
           strong: ({ children }) => (
             <strong className="font-bold text-slate-900">{children}</strong>
           ),
-          code: ({ children }) => (
-            <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-xs text-indigo-600 font-semibold">
-              {children}
-            </code>
-          ),
+          code({ node, inline, className, children, ...props }: any) {
+            const match = /language-(\w+)/.exec(className || "");
+            const codeString = String(children).replace(/\n$/, "");
+
+            if (!inline && match) {
+              return <CodeBlock language={match[1]} value={codeString} />;
+            }
+            return (
+              <code
+                className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-xs text-indigo-600 font-semibold"
+                {...props}
+              >
+                {children}
+              </code>
+            );
+          },
         }}
       >
         {content}
