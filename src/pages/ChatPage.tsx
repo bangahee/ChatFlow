@@ -466,7 +466,7 @@ export function ChatPage() {
             </form>
           </div>
         </div>
-        {showBottomButton && (
+        {showBottomButton && chats.length > 0 && (
           <button
             type="button"
             onClick={() => scrollToBottom(true)}
