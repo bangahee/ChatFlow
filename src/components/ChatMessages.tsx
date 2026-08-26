@@ -1,6 +1,7 @@
 import type { ChatItem } from "../api/types";
 import { formatKstDate, formatKstTime } from "../utils/date";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
+import { useState } from "react";
 
 export function DateSeparator({ createdAt }: { createdAt: string | Date }) {
   return (
@@ -15,6 +16,18 @@ export function DateSeparator({ createdAt }: { createdAt: string | Date }) {
 }
 
 export function MessagePair({ item }: { item: ChatItem }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAll = async () => {
+    try {
+      await navigator.clipboard.writeText(item.response);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
   return (
     <article className="space-y-5" aria-label="대화">
       <div className="flex justify-end gap-3">
@@ -50,12 +63,21 @@ export function MessagePair({ item }: { item: ChatItem }) {
           <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-[15px] leading-7 text-slate-700 shadow-sm">
             <MarkdownRenderer content={item.response} />
           </div>
-          <time
-            dateTime={item.created_at}
-            className="mt-1.5 block pl-1 text-[11px] text-slate-400"
-          >
-            {formatKstTime(item.created_at)}
-          </time>
+          <div className="mt-1.5 flex items-center justify-between px-1">
+            <button
+              type="button"
+              onClick={handleCopyAll}
+              className="text-[11px] font-medium text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-1"
+            >
+              {copied ? "✓ 전체 복사완료" : "📄 답변 복사"}
+            </button>
+            <time
+              dateTime={item.created_at}
+              className="text-[11px] text-slate-400"
+            >
+              {formatKstTime(item.created_at)}
+            </time>
+          </div>
         </div>
       </div>
     </article>
