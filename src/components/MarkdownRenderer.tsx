@@ -47,7 +47,12 @@ export const MarkdownRenderer: React.FC<Props> = ({ content }) => {
           strong: ({ children }) => (
             <strong className="font-bold text-slate-900">{children}</strong>
           ),
-          code({ node, inline, className, children, ...props }: any) {
+          code({
+            inline,
+            className,
+            children,
+            ...props
+          }: React.ComponentPropsWithoutRef<"code"> & { inline?: boolean }) {
             const match = /language-(\w+)/.exec(className || "");
             const codeString = String(children).replace(/\n$/, "");
 

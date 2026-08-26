@@ -1,33 +1,36 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useSmartScroll<T>(dependency: T) {
   const [showBottomButton, setShowBottomButton] = useState(false);
+  const isNearBottomRef = useRef(true);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     const scrollHeight = document.documentElement.scrollHeight;
     const clientHeight = window.innerHeight;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 120;
-    setShowBottomButton(!isAtBottom);
-  };
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 120;
 
-  const scrollToBottom = (smooth = true) => {
+    isNearBottomRef.current = isNearBottom;
+    setShowBottomButton(!isNearBottom);
+  }, []);
+
+  const scrollToBottom = useCallback((smooth = true) => {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: smooth ? "smooth" : "auto",
     });
-  };
+  }, []);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [handleScroll]);
 
   useEffect(() => {
-    if (!showBottomButton) {
-      scrollToBottom();
+    if (isNearBottomRef.current) {
+      scrollToBottom(true);
     }
-  }, [dependency]);
+  }, [dependency, scrollToBottom]);
 
   return { showBottomButton, scrollToBottom };
 }
