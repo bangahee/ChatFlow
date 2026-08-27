@@ -1,5 +1,9 @@
 # 웹 기반 AI 챗봇 서비스 팀 개발 가이드
 
+> 이 문서는 프로젝트 초기에 합의한 역할과 개발 흐름을 함께 보존한다.
+> 아래 **최종 역할 및 실제 기여 요약**을 제출·평가 기준으로 사용하며,
+> `2-A`와 `3`의 초기 계획은 협업 과정의 변경 이력을 설명하기 위한 기록이다.
+
 ## 1. 프로젝트 개요
 
 본 프로젝트는 **React 기반 Frontend와 FastAPI 기반 Backend를 분리하여 개발하고, AI API와 Database를 연동한 웹 기반 AI 챗봇 서비스**를 구현하는 것을 목표로 한다.
@@ -35,7 +39,26 @@ Backend Repository
 
 ---
 
-# 2. 팀 역할 분담
+# 2. 최종 역할 및 실제 기여 요약
+
+| 팀원 | 최종 역할 | 실제 기여 |
+|---|---|---|
+| 반가희 | Team Lead / AI·운영·최종 통합 | OpenAI Responses API, timeout·retry·오류 변환, 운영 로그, Health Check, CI·Railway, Backend 전체 흐름 검증, Frontend 최종 감사·수정·Release 관리 |
+| 박주영 | Backend A / 인증·기반 구조 | FastAPI Application, Settings·CORS, Pydantic Schema, 회원가입·로그인, 비밀번호 Hashing, JWT 인증·인가와 관련 테스트 |
+| 김승우 | Backend B / DB·Chat + Frontend 기반 | SQLAlchemy Model·Repository, Chat Service·API와 DB 테스트, Vite·React 기반 구성, API Client, 인증·Chat UI, 통합 테스트, Frontend CI·Vercel 설정·실행 문서 |
+| 김두운 | Frontend / UI·UX·사용성 | AI Markdown·코드 복사, 자동 Scroll, 입력창·IME 처리, 인증 예외 처리, Error Boundary, 추천 Prompt, Metadata·SEO, 반응형 UI 개선과 Vercel 배포 마무리 |
+
+Commit 수는 두 Repository의 `main`에 병합된 non-merge Commit만을 기준으로
+검증한다. 작업 중 메시지, 단순 숫자 맞추기, 병합되지 않은 Commit은 유의미한
+기여 횟수에 포함하지 않으며, 최종 제출 전에 팀원별 10회 이상을 다시 확인한다.
+
+Backend 세부 역할과 구현 파일 기준은 Backend Repository의 `README.md` 및
+Git 이력을, Frontend 세부 기여는 이 Repository의 `README.md`, PR #3 및
+Git 이력을 최종 근거로 사용한다.
+
+---
+
+# 2-A. 초기 계획상 역할 분담
 
 ## 2-1. 반가희 — Team Lead / Backend 1
 
@@ -404,7 +427,7 @@ QA / Documentation
 
 ---
 
-# 3. 전체 역할 요약
+# 3. 초기 계획상 역할 요약
 
 ```text
 김두운
