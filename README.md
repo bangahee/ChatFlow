@@ -40,6 +40,19 @@ Browser
              └─ OpenAI API
 ```
 
+## 팀 역할 및 실제 기여
+
+| 팀원 | 최종 역할 | 실제 작업 요약 |
+|---|---|---|
+| 반가희 | Team Lead / AI·운영·최종 통합 | Backend OpenAI·안정성·운영 로그·Health·CI·Railway, 전체 통합 검증, Frontend 최종 감사·수정·Release 관리 |
+| 박주영 | Backend A / 인증·기반 구조 | FastAPI 기반, Settings·CORS·Schema, 회원가입·로그인, 비밀번호 Hashing, JWT 인증·인가와 테스트 |
+| 김승우 | Backend B / DB·Chat + Frontend 기반 | Backend Model·Repository·Chat Service/API·DB 테스트, Frontend Vite·API Client·인증·Chat UI·통합 테스트·CI·Vercel 설정·문서 |
+| 김두운 | Frontend / UI·UX·사용성 | Markdown·코드 복사·Scroll·입력 UX·인증 예외·Error Boundary·추천 Prompt·Metadata·반응형 UI와 Vercel 배포 마무리 |
+
+역할은 초기 계획 이후 실제 작업 상황에 맞게 조정됐다. 최종 역할의 세부 범위와
+개인별 Commit 기준은 [TEAM_GUIDE.md](TEAM_GUIDE.md) 및 두 Repository의 Git
+이력을 따른다.
+
 ## 로컬 실행
 
 ### 1. 요구 환경
