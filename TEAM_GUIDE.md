@@ -569,16 +569,31 @@ chore/env-example
 ## 기본 형식
 
 ```text
-<type>: <작업 내용>
+<type>(<scope>): <한국어 작업 내용>
 ```
+
+`scope`는 선택 사항이다. 변경 범위가 명확한 경우 소문자 영문으로 작성하고,
+범위를 별도로 구분할 필요가 없으면 아래처럼 생략한다.
+
+```text
+<type>: <한국어 작업 내용>
+```
+
+작업 내용은 한국어로 작성하되 API, JWT, Markdown, Railway처럼 의미 전달에
+필요한 기술 용어와 고유명사는 원문 표기를 허용한다. GitHub가 자동 생성하는
+Merge Commit 메시지는 이 규칙의 예외로 한다.
 
 예시:
 
 ```text
 feat: 로그인 API 구현
+feat(auth): JWT access token 발급 로직 추가
 fix: JWT 만료 처리 수정
+fix(ui): 모바일 레이아웃 오류 수정
 test: 회원가입 중복 테스트 추가
+test(chat): 질문 전송 실패 테스트 추가
 docs: API 명세 업데이트
+docs(readme): 로컬 실행 방법 보완
 refactor: chat service 로직 분리
 chore: requirements 의존성 추가
 ```
