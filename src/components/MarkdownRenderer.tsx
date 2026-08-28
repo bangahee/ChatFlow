@@ -7,45 +7,165 @@ interface Props {
   content: string;
 }
 
+function normalizeMarkdownLists(markdown: string): string {
+  if (!markdown || typeof markdown !== "string") return markdown;
+
+  const lines = markdown.split("\n");
+  let currentNumber = 0;
+  let inCodeBlock = false;
+
+  const result = lines.map((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+      inCodeBlock = !inCodeBlock;
+      return line;
+    }
+    if (inCodeBlock) return line;
+
+    // Match root-level ordered list items like '1. ', '1) '
+    const match = line.match(/^(\d+)([.)])\s+(.*)$/);
+    if (match) {
+      const delimiter = match[2];
+      const text = match[3];
+
+      currentNumber += 1;
+      return `${currentNumber}${delimiter} ${text}`;
+    }
+
+    // Blank line maintains list sequence
+    if (trimmed === "") {
+      return line;
+    }
+
+    // Sub-items (bullet items, indented content, blockquotes) maintain list sequence
+    if (
+      line.startsWith(" ") ||
+      line.startsWith("\t") ||
+      trimmed.startsWith("-") ||
+      trimmed.startsWith("*") ||
+      trimmed.startsWith("+") ||
+      trimmed.startsWith("•") ||
+      trimmed.startsWith(">")
+    ) {
+      return line;
+    }
+
+    // Non-list paragraph text resets the sequence
+    currentNumber = 0;
+    return line;
+  });
+
+  return result.join("\n");
+}
+
 export const MarkdownRenderer: React.FC<Props> = ({ content }) => {
+  const normalizedContent = React.useMemo(
+    () => normalizeMarkdownLists(content),
+    [content]
+  );
+
   return (
     <div className="text-[15px] leading-7 text-slate-800 break-words space-y-2.5">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          table: ({ children }) => (
+          table: ({ children, ...props }) => (
             <div className="overflow-x-auto my-3">
-              <table className="min-w-full divide-y divide-slate-200 border border-slate-200 text-left text-xs">
+              <table
+                className="min-w-full divide-y divide-slate-200 border border-slate-200 text-left text-xs"
+                {...props}
+              >
                 {children}
               </table>
             </div>
           ),
-          th: ({ children }) => (
-            <th className="bg-slate-100 px-3 py-2 font-semibold text-slate-900 border-b border-slate-200">
+          th: ({ children, ...props }) => (
+            <th
+              className="bg-slate-100 px-3 py-2 font-semibold text-slate-900 border-b border-slate-200"
+              {...props}
+            >
               {children}
             </th>
           ),
-          td: ({ children }) => (
-            <td className="px-3 py-2 border-t border-slate-200 text-slate-700">
+          td: ({ children, ...props }) => (
+            <td
+              className="px-3 py-2 border-t border-slate-200 text-slate-700"
+              {...props}
+            >
               {children}
             </td>
           ),
-          ul: ({ children }) => (
-            <ul className="list-disc pl-5 space-y-1.5 my-2 text-slate-800">
+          ul: ({ children, ...props }) => (
+            <ul
+              className="list-disc pl-5 space-y-1.5 my-2 text-slate-800"
+              {...props}
+            >
               {children}
             </ul>
           ),
-          ol: ({ children }) => (
-            <ol className="list-decimal pl-5 space-y-1.5 my-2 text-slate-800">
+          ol: ({ children, start, ...props }) => (
+            <ol
+              start={start}
+              className="list-decimal pl-5 space-y-1.5 my-2 text-slate-800"
+              {...props}
+            >
               {children}
             </ol>
           ),
-          li: ({ children }) => <li className="leading-6">{children}</li>,
-          p: ({ children }) => (
-            <p className="mb-2 last:mb-0 text-slate-800">{children}</p>
+          li: ({ children, ...props }) => (
+            <li className="leading-6" {...props}>
+              {children}
+            </li>
           ),
-          strong: ({ children }) => (
-            <strong className="font-bold text-slate-900">{children}</strong>
+          p: ({ children, ...props }) => (
+            <p className="mb-2 last:mb-0 text-slate-800" {...props}>
+              {children}
+            </p>
+          ),
+          strong: ({ children, ...props }) => (
+            <strong className="font-bold text-slate-900" {...props}>
+              {children}
+            </strong>
+          ),
+          h1: ({ children, ...props }) => (
+            <h1 className="text-xl font-bold text-slate-900 mt-4 mb-2" {...props}>
+              {children}
+            </h1>
+          ),
+          h2: ({ children, ...props }) => (
+            <h2
+              className="text-lg font-bold text-slate-900 mt-3.5 mb-1.5"
+              {...props}
+            >
+              {children}
+            </h2>
+          ),
+          h3: ({ children, ...props }) => (
+            <h3
+              className="text-base font-bold text-slate-900 mt-3 mb-1"
+              {...props}
+            >
+              {children}
+            </h3>
+          ),
+          blockquote: ({ children, ...props }) => (
+            <blockquote
+              className="border-l-4 border-slate-300 pl-4 py-1 italic text-slate-600 my-2"
+              {...props}
+            >
+              {children}
+            </blockquote>
+          ),
+          a: ({ children, href, ...props }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+              {...props}
+            >
+              {children}
+            </a>
           ),
           code({
             inline,
@@ -70,7 +190,7 @@ export const MarkdownRenderer: React.FC<Props> = ({ content }) => {
           },
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );

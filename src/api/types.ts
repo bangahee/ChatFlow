@@ -1,6 +1,7 @@
 export interface User {
   id: number
   username: string
+  is_admin: boolean
   created_at: string
 }
 
@@ -34,6 +35,24 @@ export interface ChatHistoryResponse {
 export interface DeleteChatHistoryResponse {
   message: string
   deleted_count: number
+}
+
+export interface AdminUserSummary {
+  id: number
+  username: string
+  created_at: string
+  chat_count: number
+}
+
+export interface AdminUserListResponse {
+  items: AdminUserSummary[]
+  count: number
+}
+
+export interface AdminChatHistoryResponse {
+  user: AdminUserSummary
+  items: ChatItem[]
+  count: number
 }
 
 export interface ValidationErrorDetail {

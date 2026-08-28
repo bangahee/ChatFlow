@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
@@ -28,6 +28,7 @@ export function LoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [infoMessage] = useState<string | null>(state.message ?? notice)
   const [submitting, setSubmitting] = useState(false)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (notice) consumeNotice()
@@ -46,12 +47,19 @@ export function LoginPage() {
 
     setSubmitting(true)
     try {
-      await login({ username: username.trim(), password })
-      navigate('/chat', { replace: true })
+      const currentUser = await login({ username: username.trim(), password })
+      navigate(currentUser.is_admin ? '/admin' : '/chat', { replace: true })
     } catch (error) {
       setSubmitError(getErrorMessage(error))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleUsernameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      passwordInputRef.current?.focus()
     }
   }
 
@@ -77,12 +85,14 @@ export function LoginPage() {
           value={username}
           error={fieldErrors.username}
           placeholder="chat_user"
+          onKeyDown={handleUsernameKeyDown}
           onChange={(event) => {
             setUsername(event.target.value)
             setFieldErrors((current) => ({ ...current, username: undefined }))
           }}
         />
         <FormField
+          ref={passwordInputRef}
           id="login-password"
           label="비밀번호"
           name="password"

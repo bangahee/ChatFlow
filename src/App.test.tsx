@@ -14,6 +14,14 @@ import { server } from './test/server'
 const currentUser = {
   id: 1,
   username: 'chat_user',
+  is_admin: false,
+  created_at: '2026-08-20T03:00:00Z',
+}
+
+const adminUser = {
+  id: 99,
+  username: 'admin_user',
+  is_admin: true,
   created_at: '2026-08-20T03:00:00Z',
 }
 
@@ -34,9 +42,12 @@ function installAuthenticatedHandlers(
     response: string
     created_at: string
   }> = [],
+  authenticatedUser = currentUser,
 ) {
   server.use(
-    http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(currentUser)),
+    http.get(`${API_BASE_URL}/api/me`, () =>
+      HttpResponse.json(authenticatedUser),
+    ),
     http.get(`${API_BASE_URL}/api/me/chats`, () =>
       HttpResponse.json({ items: chats, count: chats.length }),
     ),
@@ -363,5 +374,224 @@ describe('ChatFlow application', () => {
 
     await user.keyboard('{Enter}')
     await waitFor(() => expect(postHandler).toHaveBeenCalledTimes(1))
+  })
+
+  it('관리자가 채팅 경로에 직접 접근하면 관리자 화면으로 이동한다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'admin-token')
+    server.use(
+      http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(adminUser)),
+      http.get(`${API_BASE_URL}/api/admin/users`, () =>
+        HttpResponse.json({ items: [], count: 0 }),
+      ),
+    )
+
+    renderApp('/chat')
+
+    expect(await screen.findByRole('heading', { name: '사용자 대화 기록' })).toBeVisible()
+    expect(screen.queryByText('무엇이든 물어보세요')).not.toBeInTheDocument()
+  })
+
+  it('관리자가 로그인하면 바로 관리자 화면으로 이동한다', async () => {
+    server.use(
+      http.post(`${API_BASE_URL}/api/auth/login`, () =>
+        HttpResponse.json({
+          access_token: 'admin-token',
+          token_type: 'bearer',
+          expires_in: 86400,
+        }),
+      ),
+      http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(adminUser)),
+      http.get(`${API_BASE_URL}/api/admin/users`, () =>
+        HttpResponse.json({ items: [], count: 0 }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderApp('/login')
+
+    await user.type(screen.getByLabelText('아이디'), 'admin_user')
+    await user.type(screen.getByLabelText('비밀번호'), 'password123')
+    await user.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect(await screen.findByRole('heading', { name: '사용자 대화 기록' })).toBeVisible()
+    expect(screen.queryByText('무엇이든 물어보세요')).not.toBeInTheDocument()
+  })
+
+  it('일반 사용자가 관리자 경로에 직접 접근하면 채팅 화면으로 돌려보낸다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'valid-token')
+    installAuthenticatedHandlers()
+
+    renderApp('/admin')
+
+    expect(await screen.findByText('무엇이든 물어보세요')).toBeVisible()
+    expect(screen.queryByText('사용자 대화 기록')).not.toBeInTheDocument()
+  })
+
+  it('관리자가 사용자 목록에서 선택한 사용자의 전체 대화를 조회한다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'admin-token')
+    const users = [
+      {
+        id: 2,
+        username: 'target_user',
+        created_at: '2026-08-21T03:00:00Z',
+        chat_count: 2,
+      },
+      {
+        id: 3,
+        username: 'empty_user',
+        created_at: '2026-08-20T03:00:00Z',
+        chat_count: 0,
+      },
+    ]
+    server.use(
+      http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(adminUser)),
+      http.get(`${API_BASE_URL}/api/admin/users`, ({ request }) => {
+        expect(request.headers.get('Authorization')).toBe('Bearer admin-token')
+        return HttpResponse.json({ items: users, count: users.length })
+      }),
+      http.get(`${API_BASE_URL}/api/admin/users/2/chats`, ({ request }) => {
+        expect(request.headers.get('Authorization')).toBe('Bearer admin-token')
+        return HttpResponse.json({
+          user: users[0],
+          items: [
+            {
+              id: 20,
+              question: '첫 관리자 확인 질문',
+              response: '**첫 답변**',
+              created_at: '2026-08-21T04:00:00Z',
+            },
+            {
+              id: 21,
+              question: '두 번째 질문',
+              response: '두 번째 답변',
+              created_at: '2026-08-21T05:00:00Z',
+            },
+          ],
+          count: 2,
+        })
+      }),
+    )
+    const user = userEvent.setup()
+    renderApp('/admin')
+
+    expect(
+      await screen.findByRole('button', { name: 'target_user 사용자 대화 보기' }),
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', { name: 'target_user 사용자 대화 보기' }),
+    )
+
+    expect(await screen.findByText('첫 관리자 확인 질문')).toBeVisible()
+    expect(screen.getByText('첫 답변')).toBeVisible()
+    expect(screen.getByText('두 번째 질문')).toBeVisible()
+    expect(screen.getByText('두 번째 답변')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'target_user님의 대화' })).toBeVisible()
+  })
+
+  it('선택한 사용자의 대화가 없으면 빈 기록 안내를 표시한다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'admin-token')
+    const emptyUser = {
+      id: 3,
+      username: 'empty_user',
+      created_at: '2026-08-20T03:00:00Z',
+      chat_count: 0,
+    }
+    server.use(
+      http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(adminUser)),
+      http.get(`${API_BASE_URL}/api/admin/users`, () =>
+        HttpResponse.json({ items: [emptyUser], count: 1 }),
+      ),
+      http.get(`${API_BASE_URL}/api/admin/users/3/chats`, () =>
+        HttpResponse.json({ user: emptyUser, items: [], count: 0 }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderApp('/admin')
+
+    await user.click(
+      await screen.findByRole('button', { name: 'empty_user 사용자 대화 보기' }),
+    )
+
+    expect(await screen.findByText('대화 기록이 없습니다.')).toBeVisible()
+  })
+
+  it('관리자 사용자 목록 오류를 안내하고 다시 시도할 수 있다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'admin-token')
+    let requestCount = 0
+    server.use(
+      http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(adminUser)),
+      http.get(`${API_BASE_URL}/api/admin/users`, () => {
+        requestCount += 1
+        return requestCount === 1
+          ? HttpResponse.json({ detail: '목록 조회 실패' }, { status: 500 })
+          : HttpResponse.json({ items: [], count: 0 })
+      }),
+    )
+    const user = userEvent.setup()
+    renderApp('/admin')
+
+    expect(await screen.findByText('사용자 목록을 불러오지 못했습니다.')).toBeVisible()
+    expect(screen.getByText('목록 조회 실패')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByText('등록된 사용자가 없습니다.')).toBeVisible()
+    expect(requestCount).toBe(2)
+  })
+
+  it('관리자 API의 403 응답을 권한 없음 화면으로 안내한다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'admin-token')
+    server.use(
+      http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(adminUser)),
+      http.get(`${API_BASE_URL}/api/admin/users`, () =>
+        HttpResponse.json({ detail: '관리자 권한이 필요합니다.' }, { status: 403 }),
+      ),
+    )
+    renderApp('/admin')
+
+    expect(await screen.findByText('관리자 권한이 없습니다.')).toBeVisible()
+    expect(screen.getByText(/이 기능을 사용할 수 있는 계정/)).toBeVisible()
+  })
+
+  it('관리자 API의 401 응답으로 세션을 종료한다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'admin-token')
+    server.use(
+      http.get(`${API_BASE_URL}/api/me`, () => HttpResponse.json(adminUser)),
+      http.get(`${API_BASE_URL}/api/admin/users`, () =>
+        HttpResponse.json(
+          { detail: '인증 자격 증명이 유효하지 않거나 만료되었습니다.' },
+          { status: 401 },
+        ),
+      ),
+    )
+    renderApp('/admin')
+
+    expect(
+      await screen.findByText('로그인 정보가 만료되었습니다. 다시 로그인해 주세요.'),
+    ).toBeVisible()
+    expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBeNull()
+  })
+  it('로그인 화면에서 아이디 입력 중 Enter를 누르면 비밀번호 입력란으로 포커스가 이동한다', async () => {
+    const user = userEvent.setup()
+    renderApp('/login')
+
+    const usernameInput = screen.getByLabelText('아이디')
+    const passwordInput = screen.getByLabelText('비밀번호')
+
+    await user.type(usernameInput, 'chat_user{enter}')
+    expect(passwordInput).toHaveFocus()
+  })
+
+  it('회원가입 화면에서 Enter를 누르면 다음 입력란으로 순차적으로 포커스가 이동한다', async () => {
+    const user = userEvent.setup()
+    renderApp('/register')
+
+    const usernameInput = screen.getByLabelText('아이디')
+    const passwordInput = screen.getByLabelText('비밀번호')
+    const confirmationInput = screen.getByLabelText('비밀번호 확인')
+
+    await user.type(usernameInput, 'chat_user{enter}')
+    expect(passwordInput).toHaveFocus()
+
+    await user.type(passwordInput, 'password123{enter}')
+    expect(confirmationInput).toHaveFocus()
   })
 })

@@ -1,9 +1,10 @@
-import type { InputHTMLAttributes } from 'react'
+import type { InputHTMLAttributes, Ref } from 'react'
 
 interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   error?: string | null
   hint?: string
+  ref?: Ref<HTMLInputElement>
 }
 
 export function FormField({
@@ -12,6 +13,7 @@ export function FormField({
   error,
   hint,
   className = '',
+  ref,
   ...inputProps
 }: FormFieldProps) {
   const errorId = error ? `${id}-error` : undefined
@@ -24,6 +26,7 @@ export function FormField({
         {label}
       </label>
       <input
+        ref={ref}
         id={id}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
