@@ -46,8 +46,8 @@ export function LoginPage() {
 
     setSubmitting(true)
     try {
-      await login({ username: username.trim(), password })
-      navigate('/chat', { replace: true })
+      const currentUser = await login({ username: username.trim(), password })
+      navigate(currentUser.is_admin ? '/admin' : '/chat', { replace: true })
     } catch (error) {
       setSubmitError(getErrorMessage(error))
     } finally {
