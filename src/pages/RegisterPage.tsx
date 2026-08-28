@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi, getErrorMessage } from '../api/client'
 import { Alert } from '../components/Alert'
@@ -20,6 +20,8 @@ export function RegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
+  const confirmationInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -51,6 +53,20 @@ export function RegisterPage() {
     }
   }
 
+  const handleUsernameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      passwordInputRef.current?.focus()
+    }
+  }
+
+  const handlePasswordKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      confirmationInputRef.current?.focus()
+    }
+  }
+
   return (
     <AuthLayout
       eyebrow="새로운 대화를 시작해요"
@@ -69,14 +85,16 @@ export function RegisterPage() {
           autoFocus
           value={username}
           error={fieldErrors.username}
-          hint="영문, 숫자, 밑줄(_)을 사용해 3~50자로 입력하세요."
+          hint="3~50자의 영문, 숫자, 밑줄(_)을 입력해 주세요."
           placeholder="chat_user"
+          onKeyDown={handleUsernameKeyDown}
           onChange={(event) => {
             setUsername(event.target.value)
             setFieldErrors((current) => ({ ...current, username: undefined }))
           }}
         />
         <FormField
+          ref={passwordInputRef}
           id="register-password"
           label="비밀번호"
           name="password"
@@ -86,12 +104,14 @@ export function RegisterPage() {
           error={fieldErrors.password}
           hint="8자 이상 128자 이하로 입력하세요."
           placeholder="8자 이상 입력"
+          onKeyDown={handlePasswordKeyDown}
           onChange={(event) => {
             setPassword(event.target.value)
             setFieldErrors((current) => ({ ...current, password: undefined }))
           }}
         />
         <FormField
+          ref={confirmationInputRef}
           id="register-password-confirmation"
           label="비밀번호 확인"
           name="passwordConfirmation"

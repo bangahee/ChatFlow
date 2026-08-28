@@ -569,4 +569,29 @@ describe('ChatFlow application', () => {
     ).toBeVisible()
     expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBeNull()
   })
+  it('로그인 화면에서 아이디 입력 중 Enter를 누르면 비밀번호 입력란으로 포커스가 이동한다', async () => {
+    const user = userEvent.setup()
+    renderApp('/login')
+
+    const usernameInput = screen.getByLabelText('아이디')
+    const passwordInput = screen.getByLabelText('비밀번호')
+
+    await user.type(usernameInput, 'chat_user{enter}')
+    expect(passwordInput).toHaveFocus()
+  })
+
+  it('회원가입 화면에서 Enter를 누르면 다음 입력란으로 순차적으로 포커스가 이동한다', async () => {
+    const user = userEvent.setup()
+    renderApp('/register')
+
+    const usernameInput = screen.getByLabelText('아이디')
+    const passwordInput = screen.getByLabelText('비밀번호')
+    const confirmationInput = screen.getByLabelText('비밀번호 확인')
+
+    await user.type(usernameInput, 'chat_user{enter}')
+    expect(passwordInput).toHaveFocus()
+
+    await user.type(passwordInput, 'password123{enter}')
+    expect(confirmationInput).toHaveFocus()
+  })
 })
