@@ -85,7 +85,7 @@ export function RegisterPage() {
           autoFocus
           value={username}
           error={fieldErrors.username}
-          hint="3~50자의 영문, 숫자, 밑줄(_)을 입력해 주세요."
+          hint="3~50자의 영문, 숫자, 밑줄(_)만 가능합니다. (외 특수문자 불가)"
           placeholder="chat_user"
           onKeyDown={handleUsernameKeyDown}
           onChange={(event) => {
