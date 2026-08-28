@@ -19,7 +19,7 @@ interface AuthContextValue {
   user: User | null
   token: string | null
   notice: string | null
-  login: (credentials: AuthCredentials) => Promise<void>
+  login: (credentials: AuthCredentials) => Promise<User>
   logout: () => void
   invalidateSession: (message?: string) => void
   consumeNotice: () => void
@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(currentUser)
       setNotice(null)
       setStatus('authenticated')
+      return currentUser
     } catch (error) {
       localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
       throw error

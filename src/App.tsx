@@ -1,6 +1,13 @@
 import { Route, Routes } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { IndexRoute, PublicOnly, RequireAuth } from "./auth/RouteGuards";
+import {
+  IndexRoute,
+  PublicOnly,
+  RequireAdmin,
+  RequireAuth,
+  RequireChatUser,
+} from "./auth/RouteGuards";
+import { AdminPage } from "./pages/AdminPage";
 import { ChatPage } from "./pages/ChatPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -15,7 +22,12 @@ export function App() {
           <Route path="/register" element={<RegisterPage />} />
         </Route>
         <Route element={<RequireAuth />}>
-          <Route path="/chat" element={<ChatPage />} />
+          <Route element={<RequireChatUser />}>
+            <Route path="/chat" element={<ChatPage />} />
+          </Route>
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin" element={<AdminPage />} />
+          </Route>
         </Route>
         <Route path="*" element={<IndexRoute />} />
       </Routes>

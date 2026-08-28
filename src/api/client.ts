@@ -1,4 +1,6 @@
 import type {
+  AdminChatHistoryResponse,
+  AdminUserListResponse,
   AuthCredentials,
   ChatHistoryResponse,
   ChatResponse,
@@ -186,6 +188,22 @@ export const chatApi = {
       token,
       signal,
     });
+  },
+};
+
+export const adminApi = {
+  listUsers(token: string, signal?: AbortSignal) {
+    return apiRequest<AdminUserListResponse>("/api/admin/users", {
+      token,
+      signal,
+    });
+  },
+
+  listUserChats(userId: number, token: string, signal?: AbortSignal) {
+    return apiRequest<AdminChatHistoryResponse>(
+      `/api/admin/users/${userId}/chats`,
+      { token, signal },
+    );
   },
 };
 
