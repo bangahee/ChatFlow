@@ -7,7 +7,63 @@ interface Props {
   content: string;
 }
 
+function normalizeMarkdownLists(markdown: string): string {
+  if (!markdown || typeof markdown !== "string") return markdown;
+
+  const lines = markdown.split("\n");
+  let currentNumber = 0;
+  let inCodeBlock = false;
+
+  const result = lines.map((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+      inCodeBlock = !inCodeBlock;
+      return line;
+    }
+    if (inCodeBlock) return line;
+
+    // Match root-level ordered list items like '1. ', '1) '
+    const match = line.match(/^(\d+)([.)])\s+(.*)$/);
+    if (match) {
+      const delimiter = match[2];
+      const text = match[3];
+
+      currentNumber += 1;
+      return `${currentNumber}${delimiter} ${text}`;
+    }
+
+    // Blank line maintains list sequence
+    if (trimmed === "") {
+      return line;
+    }
+
+    // Sub-items (bullet items, indented content, blockquotes) maintain list sequence
+    if (
+      line.startsWith(" ") ||
+      line.startsWith("\t") ||
+      trimmed.startsWith("-") ||
+      trimmed.startsWith("*") ||
+      trimmed.startsWith("+") ||
+      trimmed.startsWith("•") ||
+      trimmed.startsWith(">")
+    ) {
+      return line;
+    }
+
+    // Non-list paragraph text resets the sequence
+    currentNumber = 0;
+    return line;
+  });
+
+  return result.join("\n");
+}
+
 export const MarkdownRenderer: React.FC<Props> = ({ content }) => {
+  const normalizedContent = React.useMemo(
+    () => normalizeMarkdownLists(content),
+    [content]
+  );
+
   return (
     <div className="text-[15px] leading-7 text-slate-800 break-words space-y-2.5">
       <ReactMarkdown
@@ -134,7 +190,7 @@ export const MarkdownRenderer: React.FC<Props> = ({ content }) => {
           },
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );
