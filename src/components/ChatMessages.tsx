@@ -1,17 +1,79 @@
-import type { ChatItem } from "../api/types";
-import { formatKstDate, formatKstTime } from "../utils/date";
-import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { useState } from "react";
+import type { ChatItem } from "../api/types";
+import { formatKstTime } from "../utils/date";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 export function DateSeparator({ createdAt }: { createdAt: string | Date }) {
   return (
-    <div className="my-8 flex items-center gap-3" role="separator">
-      <span className="h-px flex-1 bg-slate-200" />
-      <time className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">
-        {formatKstDate(createdAt)}
-      </time>
-      <span className="h-px flex-1 bg-slate-200" />
+    <div className="my-6 flex items-center gap-3">
+      <div className="h-px flex-1 bg-slate-200" />
+      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+        {new Intl.DateTimeFormat("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "short",
+          timeZone: "Asia/Seoul",
+        }).format(new Date(createdAt))}
+      </span>
+      <div className="h-px flex-1 bg-slate-200" />
     </div>
+  );
+}
+
+export function ChatSkeleton() {
+  return (
+    <div className="space-y-6 py-4" aria-label="대화 불러오는 중">
+      <div className="flex justify-end">
+        <div className="h-12 w-48 animate-pulse rounded-2xl rounded-br-md bg-indigo-100" />
+      </div>
+      <div className="flex items-start gap-3">
+        <div className="size-8 animate-pulse rounded-xl bg-slate-200" />
+        <div className="space-y-2">
+          <div className="h-16 w-72 animate-pulse rounded-2xl rounded-tl-md bg-slate-200" />
+          <div className="h-8 w-40 animate-pulse rounded-xl bg-slate-100" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function PendingMessage({ question }: { question: string }) {
+  return (
+    <article className="space-y-5" aria-label="전송 중인 질문">
+      <div className="flex justify-end gap-3">
+        <div className="max-w-[86%] sm:max-w-[75%] min-w-0">
+          <div className="rounded-2xl rounded-br-md bg-indigo-600 px-4 py-3 text-[15px] leading-6 whitespace-pre-wrap break-all text-white shadow-sm">
+            {question}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-3">
+        <div
+          className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="size-4 animate-spin">
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeDasharray="28 14"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+        <div className="max-w-[88%] sm:max-w-[78%] min-w-0">
+          <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-500 shadow-sm break-all">
+            <span className="size-2 animate-ping rounded-full bg-indigo-600" />
+            <span>AI가 답변을 생성하고 있습니다…</span>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -31,8 +93,8 @@ export function MessagePair({ item }: { item: ChatItem }) {
   return (
     <article className="space-y-5" aria-label="대화">
       <div className="flex justify-end gap-3">
-        <div className="max-w-[86%] sm:max-w-[75%]">
-          <div className="rounded-2xl rounded-br-md bg-indigo-600 px-4 py-3 text-[15px] leading-6 whitespace-pre-wrap text-white shadow-sm">
+        <div className="max-w-[86%] sm:max-w-[75%] min-w-0">
+          <div className="rounded-2xl rounded-br-md bg-indigo-600 px-4 py-3 text-[15px] leading-6 whitespace-pre-wrap break-all text-white shadow-sm">
             {item.question}
           </div>
           <time
@@ -59,8 +121,8 @@ export function MessagePair({ item }: { item: ChatItem }) {
             />
           </svg>
         </div>
-        <div className="max-w-[88%] sm:max-w-[78%]">
-          <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-[15px] leading-7 text-slate-700 shadow-sm">
+        <div className="max-w-[88%] sm:max-w-[78%] min-w-0">
+          <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-[15px] leading-7 text-slate-700 shadow-sm break-all">
             <MarkdownRenderer content={item.response} />
           </div>
           <div className="mt-1.5 flex items-center justify-between px-1">
@@ -81,61 +143,5 @@ export function MessagePair({ item }: { item: ChatItem }) {
         </div>
       </div>
     </article>
-  );
-}
-
-export function PendingMessage({ question }: { question: string }) {
-  const now = new Date();
-  return (
-    <article className="space-y-5" aria-label="전송 중인 대화">
-      <div className="flex justify-end gap-3">
-        <div className="max-w-[86%] sm:max-w-[75%]">
-          <div className="rounded-2xl rounded-br-md bg-indigo-600 px-4 py-3 text-[15px] leading-6 whitespace-pre-wrap text-white opacity-90 shadow-sm">
-            {question}
-          </div>
-          <span className="mt-1.5 block pr-1 text-right text-[11px] text-slate-400">
-            {formatKstTime(now)}
-          </span>
-        </div>
-      </div>
-      <div className="flex items-start gap-3" role="status">
-        <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
-          <span className="size-3 animate-pulse rounded-full bg-white/90" />
-        </div>
-        <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-4 shadow-sm">
-          {[0, 1, 2].map((index) => (
-            <span
-              key={index}
-              className="size-2 animate-bounce rounded-full bg-indigo-400 motion-reduce:animate-pulse"
-              style={{ animationDelay: `${index * 120}ms` }}
-            />
-          ))}
-          <span className="sr-only">AI가 답변을 작성하고 있습니다.</span>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-export function ChatSkeleton() {
-  return (
-    <div
-      className="space-y-8"
-      role="status"
-      aria-label="대화 기록을 불러오는 중"
-    >
-      {[0, 1].map((item) => (
-        <div
-          key={item}
-          className="animate-pulse space-y-5 motion-reduce:animate-none"
-        >
-          <div className="ml-auto h-16 w-2/3 rounded-2xl rounded-br-md bg-indigo-100" />
-          <div className="flex gap-3">
-            <div className="size-8 rounded-xl bg-slate-200" />
-            <div className="h-24 w-3/4 rounded-2xl rounded-tl-md bg-slate-200" />
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
