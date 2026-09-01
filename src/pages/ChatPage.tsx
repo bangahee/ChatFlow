@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert } from "../components/Alert";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ChatHeader } from "../components/ChatHeader";
@@ -33,6 +33,7 @@ export function ChatPage() {
   // 🎯 포커스 및 스크롤 참조
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const [composerKey, setComposerKey] = useState(0);
 
   // 📜 스마트 스크롤 제어 훅 연동
   const { showBottomButton, scrollToBottom } = useSmartScroll([
@@ -47,6 +48,13 @@ export function ChatPage() {
       block: "end",
     });
   }, [chats, pendingQuestion, historyLoading]);
+
+  const handlePromptSelect = async (text: string) => {
+    const success = await sendQuestion(text);
+    if (success) {
+      setComposerKey((current) => current + 1);
+    }
+  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50">
@@ -90,12 +98,13 @@ export function ChatPage() {
             historyError={historyError}
             scrollAnchorRef={scrollAnchorRef}
             onRetry={() => void loadHistory()}
-            onSelectPrompt={(text) => void sendQuestion(text)}
+            onSelectPrompt={(text) => void handlePromptSelect(text)}
           />
         </div>
 
         {/* ⌨️ 4. 하단 질문 입력 영역 */}
         <ChatComposer
+          key={composerKey}
           sending={sending}
           sendError={sendError}
           onSend={sendQuestion}

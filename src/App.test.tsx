@@ -246,6 +246,39 @@ describe('ChatFlow application', () => {
     expect(postHandler).toHaveBeenCalledTimes(1)
   })
 
+  it('작성 중인 입력이 있어도 추천 프롬프트 전송 성공 후 입력창을 비운다', async () => {
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'valid-token')
+    installAuthenticatedHandlers()
+    server.use(
+      http.post(`${API_BASE_URL}/api/chat`, () =>
+        HttpResponse.json(
+          {
+            id: 14,
+            question: '⚡️ React 렌더링 최적화 팁 알려줘',
+            response: '추천 답변',
+            created_at: '2026-08-21T05:00:00Z',
+            request_id: 'prompt-draft-request-id',
+          },
+          { status: 201 },
+        ),
+      ),
+    )
+    const user = userEvent.setup()
+    renderApp('/chat')
+
+    await screen.findByText('무엇이든 물어보세요')
+    const composer = screen.getByLabelText('AI에게 보낼 질문')
+    await user.type(composer, '작성 중인 질문')
+    await user.click(
+      screen.getByRole('button', {
+        name: '⚡️ React 렌더링 최적화 팁 알려줘',
+      }),
+    )
+
+    expect(await screen.findByText('추천 답변')).toBeVisible()
+    expect(screen.getByLabelText('AI에게 보낼 질문')).toHaveValue('')
+  })
+
   it('AI timeout 오류를 보여주고 입력한 질문을 보존한다', async () => {
     localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, 'valid-token')
     installAuthenticatedHandlers()
